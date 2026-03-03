@@ -2,8 +2,8 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>上石國小班級外務點名紀錄系統</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>上石國小班級外務登記系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -11,73 +11,39 @@
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@700;900&display=swap');
-    
     :root {
-      --morandi-bg: #EAE3D2; 
-      --morandi-accent: #607EAA;
-      --morandi-highlight: #D4AD7B;
-      --morandi-dark: #2C3333;
-      --breath-color: #91998E; /* 對比度較高的灰綠色 */
+      --morandi-bg: #EAE3D2; --morandi-accent: #607EAA;
+      --morandi-highlight: #D4AD7B; --morandi-dark: #2C3333;
     }
-
     body {
       font-family: "標楷體", "BiauKai", "DFKai-SB", serif;
       background-color: var(--morandi-bg);
       background-image: url('https://www.transparenttextures.com/patterns/p6.png');
-      color: var(--morandi-dark);
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
+      height: 100dvh; width: 100vw; overflow: hidden;
     }
-
     .paper-card {
-      background: rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.6);
       border: 1.5px solid rgba(0, 0, 0, 0.15);
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
+      border-radius: 12px; display: flex; flex-direction: column;
     }
-
-    .selected-item {
-      background-color: var(--morandi-accent) !important;
-      color: white !important;
+    .shang-shi-neon {
+      display: inline-block; animation: super-breath 2.5s infinite ease-in-out;
+      font-family: 'Noto Serif TC', serif; font-weight: 900;
     }
-
-    .selected-student {
-      background-color: var(--morandi-highlight) !important;
-      color: white !important;
-      border-color: #B48D5B !important;
+    @keyframes super-breath {
+      0%, 100% { color: #2C3333; text-shadow: 0 0 5px white; }
+      50% { color: #FF0000; text-shadow: 0 0 15px rgba(255,0,0,0.5); transform: scale(1.05); }
     }
-
-    /* 標題呼吸燈 */
-    @keyframes title-breath {
-      0%, 100% { color: var(--morandi-dark); text-shadow: none; }
-      50% { color: #845460; text-shadow: 0 0 8px rgba(132, 84, 96, 0.3); }
-    }
-    .title-highlight {
-      animation: title-breath 4s infinite ease-in-out;
-    }
-
-    /* 登記清單呼吸燈 - 增加對比 */
-    @keyframes list-breath {
-      0%, 100% { background-color: rgba(255, 255, 255, 0.7); border-color: rgba(0,0,0,0.1); }
-      50% { background-color: #DDE0DB; border-color: var(--breath-color); }
-    }
-    .breath-card {
-      animation: list-breath 2.5s infinite ease-in-out;
-    }
-
-    .clock-text { font-family: 'Courier New', monospace; font-weight: 900; }
+    .selected-item { background-color: var(--morandi-accent) !important; color: white !important; }
+    .selected-student { background-color: var(--morandi-highlight) !important; color: white !important; }
     .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .clock-text { font-family: 'Courier New', monospace; font-weight: 900; letter-spacing: -2px; }
     
-    .watermark {
-      position: absolute;
-      bottom: 2px;
-      right: 5px;
-      font-size: 8px;
-      color: rgba(0,0,0,0.15);
-      pointer-events: none;
+    /* 右下角極低調標註：顏色與背景趨近，字體極小化 */
+    .copyright-footer {
+      position: absolute; bottom: 2px; right: 8px; font-size: 8px;
+      color: rgba(44, 51, 51, 0.12); pointer-events: none; font-family: sans-serif;
+      text-align: right; line-height: 1.1; z-index: 0;
     }
   </style>
 </head>
@@ -86,11 +52,10 @@
 
   <script type="text/babel">
     const { useState, useEffect, useMemo } = React;
-
-    const STUDENT_NUMBERS = Array.from({ length: 29 }, (_, i) => i + 1);
+    const STUDENT_LIST = [...Array.from({ length: 29 }, (_, i) => (i + 1).toString()), "師"];
     const FIXED_CLUBS = ["籃球", "扯鈴", "舞蹈", "跆拳道", "智高", "生服隊", "圖書館", "廁所", "外掃區", "田徑", "語文競賽"];
-    const CUSTOM_COUNT = 5;
-    const STORAGE_KEY = 'shang-shi-v5-storage';
+    const CUSTOM_COUNT = 8;
+    const STORAGE_KEY = 'shang-shi-v6-storage';
 
     const App = () => {
       const [time, setTime] = useState(new Date());
@@ -109,136 +74,135 @@
 
       const handleRegister = () => {
         if (selectedStudents.size === 0 || !selectedClub) return;
-        const newEntries = Array.from(selectedStudents).map(num => ({
-            id: Date.now() + Math.random(),
-            student: num,
-            club: selectedClub
+        const now = Date.now();
+        const newEntries = Array.from(selectedStudents).map((val, idx) => ({
+            id: `${now}-${val}-${idx}`, student: val, club: selectedClub
         }));
         setRegistrations(prev => [...prev, ...newEntries]);
         setSelectedStudents(new Set());
       };
 
+      const deleteClub = (c) => confirm(`刪除「${c}」整筆資料？`) && setRegistrations(r => r.filter(x => x.club !== c));
+      const deleteOne = (c, s) => setRegistrations(r => r.filter(x => !(x.club === c && x.student === s)));
+
       const groupedData = useMemo(() => {
         const g = {};
-        registrations.forEach(reg => {
-          if (!g[reg.club]) g[reg.club] = new Set();
-          g[reg.club].add(reg.student);
+        registrations.forEach(r => {
+          if (!g[r.club]) g[r.club] = new Set();
+          g[r.club].add(r.student);
         });
         return Object.entries(g).sort();
       }, [registrations]);
 
-      const copyToClipboard = () => {
-        const now = new Date();
-        const hour = now.getHours();
-        let period = hour < 11 ? "早上" : (hour < 13 ? "中午" : "下午");
-        const dateStr = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${period}`;
-        const content = groupedData.map(([c, s]) => `${c}: ${Array.from(s).sort((a,b)=>a-b).join(', ')}`).join('\n');
-        navigator.clipboard.writeText(`${dateStr}\n${content}`);
-        alert(`已複製 ${period} 資料`);
+      const editClubName = (i) => {
+        const oldName = clubList[i];
+        const newName = prompt("請輸入新的項目名稱：", oldName);
+        if (newName && newName !== oldName) {
+          const newList = [...clubList];
+          newList[i] = newName;
+          setClubList(newList);
+          localStorage.setItem(STORAGE_KEY + '_clubs', JSON.stringify(newList));
+        }
       };
 
       return (
-        <div className="flex flex-col h-screen w-full p-4 gap-4 overflow-hidden relative">
-          
-          {/* Header */}
-          <header className="h-[8%] flex justify-between items-end border-b-2 border-stone-800 pb-1">
-            <div className="flex items-baseline gap-3">
-              <h1 className="text-4xl font-black text-stone-800 tracking-tighter">
-                <span className="title-highlight">上石</span>國小班級外務點名紀錄系統
+        <div className="flex flex-col h-full w-full p-3 lg:p-4 gap-3 overflow-hidden relative">
+          <header className="h-[8%] flex justify-between items-end border-b-2 border-stone-800 pb-1 shrink-0">
+            <div className="flex items-baseline gap-2">
+              <h1 className="text-2xl lg:text-4xl font-black text-stone-800">
+                <span className="shang-shi-neon mr-1">上石</span>國小班級外務登記系統
               </h1>
-              <span className="text-xs text-stone-500 font-bold">（限台中市上石國小教室使用）</span>
+              <span className="text-xs lg:text-sm text-stone-500 font-bold tracking-tight">（限上石國小校內教室使用）</span>
             </div>
             <div className="flex items-center gap-4">
               <span className="text-xl font-bold bg-stone-700 text-white px-4 py-1 rounded-lg">總人次：{registrations.length}</span>
-              <button onClick={() => confirm('清空？') && setRegistrations([])} className="text-red-700 font-bold hover:underline">【重置】</button>
+              <button onClick={() => confirm('重置所有資料？') && setRegistrations([])} className="text-red-700 font-bold hover:underline">【重置】</button>
             </div>
           </header>
 
-          {/* Main Container */}
-          <main className="h-[78%] flex gap-4 overflow-hidden">
-            
-            {/* 項目欄 */}
-            <div className="w-[12%] paper-card">
-               <div className="bg-stone-700 text-white py-1 text-center font-bold text-sm">項目</div>
-               <div className="flex-grow overflow-y-auto no-scrollbar p-2 space-y-1">
+          <main className="h-[78%] flex flex-row gap-3 overflow-hidden">
+            <div className="w-[13%] lg:w-[11%] shrink-0 paper-card">
+               <div className="bg-stone-700 text-white py-1 text-center font-bold text-xs">項目</div>
+               <div className="flex-grow overflow-y-auto no-scrollbar p-1.5 space-y-1.5">
                   {clubList.map((name, i) => (
-                    <div key={i} onClick={() => setSelectedClub(name)}
-                         className={`p-1.5 rounded cursor-pointer text-center text-lg font-bold border transition-all ${selectedClub === name ? 'selected-item' : 'bg-white/60 hover:border-stone-400'}`}>
-                       {i >= FIXED_CLUBS.length ? (
-                         <input className="bg-transparent outline-none w-full text-center" value={name} onClick={(e)=>e.stopPropagation()} onChange={(e)=>{
-                           const newList = [...clubList]; newList[i] = e.target.value; setClubList(newList);
-                           localStorage.setItem(STORAGE_KEY + '_clubs', JSON.stringify(newList));
-                         }} />
-                       ) : name}
+                    <div key={i} className="relative group">
+                      <div onClick={() => setSelectedClub(name)}
+                           className={`py-2 px-1 rounded cursor-pointer text-center text-lg lg:text-xl font-bold border transition-all ${selectedClub === name ? 'selected-item' : 'bg-white/60 hover:border-stone-400'}`}>
+                        {name}
+                      </div>
+                      {i >= FIXED_CLUBS.length && (
+                        <button onClick={(e) => { e.stopPropagation(); editClubName(i); }} 
+                                className="absolute -top-1 -right-1 bg-amber-500 text-white w-5 h-5 rounded-full text-[10px] shadow-sm hover:bg-amber-600 flex items-center justify-center">✎</button>
+                      )}
                     </div>
                   ))}
                </div>
             </div>
 
-            {/* 座號欄 */}
-            <div className="w-[13%] paper-card">
-               <div className="bg-stone-700 text-white py-1 text-center font-bold text-sm">座號</div>
-               <div className="flex-grow overflow-y-auto no-scrollbar p-2 grid grid-cols-2 gap-1.5 content-start">
-                  {STUDENT_NUMBERS.map(num => (
-                    <button key={num} onClick={() => {
+            <div className="w-[11%] lg:w-[9%] shrink-0 paper-card">
+               <div className="bg-stone-700 text-white py-1 text-center font-bold text-xs">座號</div>
+               <div className="flex-grow overflow-y-auto no-scrollbar p-1 grid grid-cols-3 gap-0.5 content-start">
+                  {STUDENT_LIST.map(v => (
+                    <button key={v} onClick={() => {
                       const n = new Set(selectedStudents);
-                      if(n.has(num)) n.delete(num); else n.add(num);
+                      n.has(v) ? n.delete(v) : n.add(v);
                       setSelectedStudents(n);
-                    }} className={`h-10 rounded font-bold text-xl border ${selectedStudents.has(num) ? 'selected-student' : 'bg-white/80'}`}>
-                      {num}
+                    }} className={`h-8 lg:h-9 rounded font-bold text-sm lg:text-lg border ${selectedStudents.has(v) ? 'selected-student' : 'bg-white/80'}`}>
+                      {v}
                     </button>
                   ))}
                </div>
             </div>
 
-            {/* 登記清單 (同一行顯示) */}
-            <div className="w-[37.5%] paper-card">
-                <div className="bg-stone-700 text-white py-1 text-center font-bold flex justify-between px-4 text-sm items-center">
+            <div className="flex-grow paper-card">
+                <div className="bg-stone-700 text-white py-2 text-center font-bold flex justify-between px-4 text-lg items-center shrink-0">
                   <span>登記清單</span>
-                  <button onClick={copyToClipboard} className="bg-white text-stone-800 px-2 rounded hover:bg-stone-200 transition-colors">複製名單</button>
+                  <button onClick={() => {
+                    const content = groupedData.map(([c, s]) => `${c}: ${Array.from(s).sort((a,b)=>parseInt(a)-parseInt(b)).join(', ')}`).join('\n');
+                    navigator.clipboard.writeText(content); alert("已複製！");
+                  }} className="bg-white text-stone-800 px-3 py-1 rounded-md text-base font-black">複製名單</button>
                 </div>
-                <div className="flex-grow overflow-y-auto p-2 space-y-1 no-scrollbar">
+                <div className="flex-grow overflow-y-auto p-3 space-y-2 no-scrollbar">
                    {groupedData.map(([club, students]) => (
-                     <div key={club} className="breath-card px-3 py-1 rounded border-l-4 border-stone-600 shadow-sm flex items-center justify-between gap-2 overflow-hidden whitespace-nowrap">
-                        <span className="text-lg font-black shrink-0 border-r border-stone-300 pr-2">{club}</span>
-                        <div className="text-lg tracking-normal font-bold text-stone-700 truncate flex-grow text-right">
-                           {Array.from(students).sort((a,b)=>a-b).join(', ')}
+                     <div key={club} className="bg-white/70 px-4 py-2 rounded-lg border-l-8 border-stone-600 shadow flex items-center gap-3">
+                        <span onClick={() => deleteClub(club)} className="text-xl lg:text-2xl font-black shrink-0 pr-3 cursor-pointer hover:text-red-600">{club}</span>
+                        <div className="flex flex-wrap gap-2 flex-grow justify-end">
+                           {Array.from(students).sort((a,b)=>parseInt(a)-parseInt(b)).map(s => (
+                             <span key={s} onClick={() => deleteOne(club, s)} className="bg-white border border-stone-300 px-3 py-0.5 rounded cursor-pointer hover:bg-red-100 font-bold text-xl lg:text-2xl">{s}</span>
+                           ))}
                         </div>
-                        <span className="text-[10px] bg-stone-500 text-white px-1 rounded shrink-0">{students.size}人</span>
                      </div>
                    ))}
                 </div>
             </div>
 
-            {/* 時鐘欄 */}
-            <div className="w-[37.5%] paper-card flex items-center justify-center bg-stone-100/30">
-               <div className="text-center">
-                  <div className="text-xl font-bold text-stone-500 mb-2">現在時間</div>
-                  <div className="text-[7vw] leading-none clock-text text-stone-800">
+            <div className="hidden lg:flex w-[30%] shrink-0 paper-card items-center justify-center bg-stone-800 text-stone-100">
+               <div className="text-center p-4">
+                  <div className="text-xl font-bold text-stone-400 mb-2 tracking-widest uppercase">Current Time</div>
+                  <div className="text-[6vw] leading-none clock-text text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.3)]">
                     {time.toLocaleTimeString('zh-TW', { hour12: false })}
                   </div>
-                  <div className="text-2xl mt-4 font-bold text-stone-600">
-                    {time.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })}
+                  <div className="text-2xl mt-4 font-bold border-t border-stone-600 pt-4">
+                    {time.toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', weekday: 'long' })}
                   </div>
                </div>
             </div>
           </main>
 
-          {/* Footer */}
-          <footer className="h-[10%] flex gap-4">
+          <footer className="h-[10%] flex gap-3 shrink-0 relative">
              <div className="flex-grow paper-card justify-center px-6">
-                <div className="text-2xl font-bold">
-                  {selectedClub ? <span>準備登記到：<span className="text-blue-700">{selectedClub}</span></span> : "請先點選左側項目"}
-                  {selectedStudents.size > 0 && <span className="ml-6">選中座號：<span className="text-amber-700">{Array.from(selectedStudents).join(', ')}</span></span>}
+                <div className="text-2xl lg:text-3xl font-bold">
+                  {selectedClub ? <span>項目：<span className="text-blue-700">{selectedClub}</span></span> : <span className="text-stone-400">請選擇項目...</span>}
+                  {selectedStudents.size > 0 && <span className="ml-8">座號：<span className="text-amber-700">{Array.from(selectedStudents).sort((a,b)=>parseInt(a)-parseInt(b)).join(', ')}</span></span>}
                 </div>
              </div>
-             <button onClick={handleRegister} className="w-[30%] bg-stone-800 text-white rounded-xl text-3xl font-black shadow-lg active:scale-95 transition-all">
-               確認登記
-             </button>
+             <button onClick={handleRegister} className="w-[25%] bg-stone-800 text-white rounded-xl text-3xl font-black hover:bg-black transition-all">確認登記</button>
           </footer>
 
-          {/* 右下角浮水印 */}
-          <div className="watermark">台中市上石國小教師會製作</div>
+          <div className="copyright-footer">
+            上石國小教師會 製作 版權所有<br/>
+            By 林嘉威 老師 (a776663@st.tc.edu.tw)
+          </div>
         </div>
       );
     };
