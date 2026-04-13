@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上石國小作業點交系統</title>
+    
+    <!-- 引入 React 與 Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        :root {
+            /* 牛皮紙溫暖色系 */
+            --bg-kraft: #dfcba4; 
+            --paper-bg: #f8f1e5;
+            --text-main: #4a3b32;
+            --text-light: #7a6859;
+            --line-color: #d1bfae;
+            
+            /* 狀態顏色 */
+            --color-missing: #e57373; /* 柔和紅 */
+            --color-processing: #ffb74d; /* 柔和橘黃 */
+            --color-completed: #81c784; /* 柔和綠 */
+        }
+
+        body {
+            font-family: 'Helvetica Neue', 'Noto Sans TC', '微軟正黑體', sans-serif;
+            background-color: var(--bg-kraft);
+            background-image: radial-gradient(rgba(0,0,0,0.03) 1px, transparent 1px);
+            background-size: 4px 4px;
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            padding: 30px 15px;
+            margin: 0;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        #root {
+            width: 100%;
+            max-width: 1300px;
+            background: var(--paper-bg);
+            padding: 30px 40px;
+            border-radius: 8px;
+            box-shadow: 2px 5px 15px rgba(0, 0, 0, 0.1), 0 0 40px rgba(255, 255, 255, 0.3) inset;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        /* 頂部裝飾 */
+        #root::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 6px;
+            background: repeating-linear-gradient(90deg, transparent, transparent 20px, #c1a58d 20px, #c1a58d 30px);
+            border-top-left-radius: 8px; border-top-right-radius: 8px;
+            opacity: 0.6;
+        }
+
+        h2 { text-align: center; color: var(--text-main); margin-top: 0; margin-bottom: 20px; letter-spacing: 2px; }
+
+        /* 頂部控制器 */
+        .top-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+        .mode-btn {
+            background: transparent;
+            border: 2px solid var(--line-color);
+            color: var(--text-light);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .mode-btn.active {
+            background: var(--text-light);
+            color: var(--paper-bg);
+            border-color: var(--text-light);
+        }
+
+        /* 燈號說明區域 */
+        .legend-section {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 6px;
+            border: 1px solid var(--line-color);
+        }
+        .legend-row { display: flex; align-items: center; gap: 8px; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 50%; box-shadow: 1px 1px 3px rgba(0,0,0,0.1) inset; }
+        .legend-input {
+            background: transparent; border: none; border-bottom: 1px dashed var(--line-color);
+            color: var(--text-main); font-family: inherit; font-size: 15px; width: 120px; padding: 2px 0;
+        }
+        .legend-input:focus { outline: none; border-bottom-style: solid; border-bottom-color: #8b5a2b; }
+
+        /* 多作業排版區塊 */
+        .tasks-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .task-card {
+            background: rgba(255,255,255,0.4);
+            border: 1px dashed var(--line-color);
+            border-radius: 8px;
+            padding: 20px;
+            flex: 1 1 280px;
+            max-width: 320px; 
+            box-sizing: border-box;
+        }
+
+        .paper-input {
+            width: 100%; padding: 8px 5px; font-family: inherit; font-size: 18px;
+            background: transparent; border: none; border-bottom: 2px solid var(--line-color);
+            color: var(--text-main); margin-bottom: 15px; box-sizing: border-box; font-weight: bold;
+        }
+        .paper-input:focus { outline: none; border-bottom-color: #8b5a2b; }
+        .paper-input::placeholder { color: #bfaea0; font-weight: normal; }
+
+        /* 作業批次按鈕 */
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .action-btn {
+            flex: 1;
+            padding: 6px 0;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.1);
+        }
+        .action-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 0px 0 rgba(0,0,0,0.1);
+        }
+        .set-all-btn {
+            background-color: #81c784;
+            color: #1b5e20;
+        }
+        .set-all-btn:hover { background-color: #66bb6a; }
+        .reset-btn {
+            background-color: #e57373;
+            color: white;
+        }
+        .reset-btn:hover { background-color: #ef5350; }
+
+        /* 號碼網格 */
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+            gap: 8px;
+        }
+
+        .status-button {
+            aspect-ratio: 1; border: none; border-radius: 6px; font-family: inherit; font-size: 16px;
+            font-weight: bold; color: white; cursor: pointer; transition: all 0.15s ease; box-shadow: 0 3px 0 rgba(0,0,0,0.1);
+        }
+        .status-button:active { transform: translateY(3px); box-shadow: 0 0px 0 rgba(0,0,0,0.1); }
+        .state-0 { background-color: var(--color-missing); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
+        .state-1 { background-color: var(--color-processing); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
+        .state-2 { background-color: var(--color-completed); text-shadow: 1px 1px 1px rgba(0,0,0,0.2); }
+
+        /* 匯出報告區域 */
+        .export-section-container {
+            border-top: 2px dashed var(--line-color);
+            padding-top: 25px;
+        }
+
+        .user-identity {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.5);
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid var(--line-color);
+        }
+
+        .export-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .export-card {
+            background: rgba(255,255,255,0.6);
+            border: 1px solid var(--line-color);
+            border-radius: 8px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 裝飾線條區分嚴重程度 */
+        .card-general { border-top: 4px solid #81c784; }
+        .card-hr { border-top: 4px solid #f57c00; }
+        .card-parent { border-top: 4px solid #c62828; }
+
+        .export-label { font-size: 16px; color: var(--text-main); font-weight: bold; border-bottom: 1px solid var(--line-color); padding-bottom: 5px; margin-bottom: 5px; }
+
+        .export-input {
+            width: 100%; padding: 8px; font-family: inherit; border: 1px solid var(--line-color);
+            border-radius: 4px; background: #fff; box-sizing: border-box; font-size: 14px;
+        }
+        .export-input:focus { outline: none; border-color: #8b5a2b; }
+        
+        .flex-row { display: flex; gap: 10px; }
+
+        .export-btn {
+            color: white; border: none; padding: 12px 10px; font-size: 15px; border-radius: 6px;
+            cursor: pointer; font-weight: bold; width: 100%; margin-top: auto; box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            transition: all 0.15s ease;
+        }
+        .export-btn:active { transform: translateY(4px); box-shadow: 0 0px 0 rgba(0,0,0,0.2); }
+        
+        .btn-general { 
+            background-color: #81c784; color: #1b5e20; box-shadow: 0 4px 0 #4caf50; 
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+        } 
+        .btn-general:hover { background-color: #66bb6a; }
+        .btn-general:active { box-shadow: 0 0px 0 #4caf50; }
+        
+        .btn-hr { background-color: #f57c00; box-shadow: 0 4px 0 #e65100; } 
+        .btn-hr:hover { background-color: #ef6c00; }
+        .btn-hr:active { box-shadow: 0 0px 0 #e65100; }
+        
+        .btn-parent { 
+            background: repeating-linear-gradient(45deg, #c62828, #c62828 10px, #b71c1c 10px, #b71c1c 20px);
+            box-shadow: 0 4px 0 #880e4f; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); letter-spacing: 1px;
+        } 
+        .btn-parent:hover { background: repeating-linear-gradient(45deg, #e53935, #e53935 10px, #c62828 10px, #c62828 20px); }
+        .btn-parent:active { box-shadow: 0 0px 0 #880e4f; }
+
+        /* 自訂彈窗樣式 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 10000;
+        }
+        .modal-box {
+            background: var(--paper-bg); padding: 30px; border-radius: 12px; width: 90%; max-width: 480px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.4); border: 2px solid var(--text-light);
+        }
+        .modal-preview {
+            background: #fff; padding: 15px; border-radius: 6px; font-family: monospace; white-space: pre-wrap;
+            max-height: 40vh; overflow-y: auto; color: #333; margin: 15px 0; border: 1px solid #ccc; line-height: 1.5; font-size: 14px;
+        }
+
+        .confirm-actions { display: flex; gap: 15px; margin-top: 20px; }
+        .btn-cancel {
+            flex: 1; background: transparent; border: 2px solid #999; color: #555; padding: 10px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-cancel:hover { background: #eee; }
+        .btn-confirm-hr { flex: 1; background: #f57c00; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .btn-confirm-parent { flex: 1; background: #c62828; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+
+        .watermark {
+            position: fixed; bottom: 10px; right: 15px; font-size: 11px; color: var(--text-main);
+            opacity: 0.25; letter-spacing: 1px; pointer-events: none; user-select: none; z-index: 9999;
+        }
+
+        @media (max-width: 600px) {
+            #root { padding: 20px 15px; }
+            .legend-section { flex-direction: column; align-items: flex-start; }
+            .export-section { grid-template-columns: 1fr; }
+            .confirm-actions { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="root"></div>
+
+    <div class="watermark">
+        上石國小教師會製作　僅限校內使用　欲使用請聯繫a776663@st.tc.edu.tw 林嘉威老師
+    </div>
+
+    <script type="text/babel">
+        const { useState } = React;
+        const { createRoot } = ReactDOM;
+
+        const BUTTON_NUMBERS = [...Array(30).keys()].map(i => i + 1);
+        const STATUS_CLASSES = ['state-0', 'state-1', 'state-2'];
+
+        const generateInitialStates = () => BUTTON_NUMBERS.reduce((acc, num) => ({ ...acc, [num]: 0 }), {});
+
+        const App = () => {
+            const [taskCount, setTaskCount] = useState(1);
+            const [legend, setLegend] = useState({ 0: '未交', 1: '處理中', 2: '已交' });
+            
+            const [myUserName, setMyUserName] = useState('');
+
+            const [tasks, setTasks] = useState([
+                { id: 1, title: '', states: generateInitialStates() },
+                { id: 2, title: '', states: generateInitialStates() },
+                { id: 3, title: '', states: generateInitialStates() },
+                { id: 4, title: '', states: generateInitialStates() }
+            ]);
+
+            const [hrTeacher, setHrTeacher] = useState('');
+            const [parentSeat, setParentSeat] = useState(1);
+            const [parentName, setParentName] = useState('');
+            const [overdueDays, setOverdueDays] = useState('');
+
+            const [modal, setModal] = useState({ isOpen: false, title: '', text: '' });
+            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', title: '', message: '' });
+
+            // 更改作業標題
+            const handleTitleChange = (id, newTitle) => {
+                setTasks(tasks.map(t => t.id === id ? { ...t, title: newTitle } : t));
+            };
+
+            // 點擊單一號碼切換狀態
+            const handleStatusClick = (taskId, number) => {
+                setTasks(tasks.map(t => {
+                    if (t.id === taskId) {
+                        return { ...t, states: { ...t.states, [number]: (t.states[number] + 1) % 3 } };
+                    }
+                    return t;
+                }));
+            };
+
+            // 批次設定特定作業的所有號碼狀態 (0: 未交, 2: 已交)
+            const handleSetAllStates = (taskId, newState) => {
+                setTasks(tasks.map(t => {
+                    if (t.id === taskId) {
+                        const newStates = {};
+                        BUTTON_NUMBERS.forEach(num => {
+                            newStates[num] = newState;
+                        });
+                        return { ...t, states: newStates };
+                    }
+                    return t;
+                }));
+            };
+
+            const copyToClipboard = (text, modalTitle) => {
+                navigator.clipboard.writeText(text).then(() => {
+                    setModal({ isOpen: true, title: modalTitle, text: text });
+                }).catch(() => {
+                    alert(`無法自動複製，請手動複製以下內容：\n\n${text}`);
+                });
+            };
+
+            const getTodayDateString = () => {
+                return new Date().toLocaleDateString('zh-TW');
+            };
+
+            // --- 匯出功能一：班級通知 ---
+            const exportForHelper = () => {
+                let report = `【作業繳交狀況紀錄】\n\n`;
+                const activeTasks = tasks.slice(0, taskCount);
+                
+                activeTasks.forEach((t, i) => {
+                    const taskName = t.title.trim() || `作業 ${i + 1}`;
+                    const missing = BUTTON_NUMBERS.filter(num => t.states[num] === 0);
+                    const processing = BUTTON_NUMBERS.filter(num => t.states[num] === 1);
+                    
+                    report += `📌 ${taskName}\n`;
+                    if (missing.length > 0) report += `🔴 [${legend[0]}]：${missing.join(', ')}\n`;
+                    if (processing.length > 0) report += `🟡 [${legend[1]}]：${processing.join(', ')}\n`;
+                    if (missing.length === 0 && processing.length === 0) report += `✅ 全班皆已完成！\n`;
+                    report += `\n`;
+                });
+                
+                report += `再麻煩小老師協助登記，並提醒同學補交喔！`;
+                report += `\n\n日期：${getTodayDateString()}`; 
+                
+                copyToClipboard(report, "✅ 小老師紀錄已複製");
+            };
+
+            // --- 開啟二次確認視窗 ---
+            const requestExport = (type) => {
+                if (type === 'hr') {
+                    setConfirmDialog({
+                        isOpen: true,
+                        type: 'hr',
+                        title: '⚠️ 準備知會導師',
+                        message: '雖然文案表明「自行處理」，但發送訊息仍會稍微打擾導師。\n\n請確認目前的缺交狀況是否已經需要讓導師知悉？'
+                    });
+                } else if (type === 'parent') {
+                    setConfirmDialog({
+                        isOpen: true,
+                        type: 'parent',
+                        title: '🚨 嚴重警告：準備聯繫家長',
+                        message: '您將發出正式給家長的警示！\n\n請問您是否已經嘗試過「親自提醒」或「要求補繳」，但學生依然無動於衷？\n建議除非必要，請避免輕易直接聯繫家長。\n\n您確定要產生正式的家長警告信嗎？'
+                    });
+                }
+            };
+
+            // --- 確認後執行匯出 ---
+            const executeExport = () => {
+                const type = confirmDialog.type;
+                const todayDate = getTodayDateString();
+                setConfirmDialog({ ...confirmDialog, isOpen: false }); 
+
+                if (type === 'hr') {
+                    const teacher = hrTeacher.trim() || "導師";
+                    let report = `${teacher} 您好：\n\n向您回報近期的作業繳交狀況，僅供您知悉班上情形，我會自行處理與提醒學生。\n\n`;
+                    
+                    const activeTasks = tasks.slice(0, taskCount);
+                    let hasIssues = false;
+
+                    activeTasks.forEach((t, i) => {
+                        const taskName = t.title.trim() || `作業 ${i + 1}`;
+                        const missing = BUTTON_NUMBERS.filter(num => t.states[num] === 0);
+                        const processing = BUTTON_NUMBERS.filter(num => t.states[num] === 1);
+                        
+                        if (missing.length > 0 || processing.length > 0) {
+                            hasIssues = true;
+                            report += `📌 ${taskName}\n`;
+                            if (missing.length > 0) report += `🔴 [${legend[0]}]：${missing.join(', ')}\n`;
+                            if (processing.length > 0) report += `🟡 [${legend[1]}]：${processing.join(', ')}\n\n`;
+                        }
+                    });
+
+                    if (!hasIssues) report += `✅ 目前各項作業全班皆已繳交完畢！\n\n`;
+
+                    report += `後續我會持續追蹤缺交情況，若真的還有特別嚴重的狀況，我會再私下與您討論。辛苦了，謝謝！`;
+                    
+                    let footer = `\n\n`;
+                    if (myUserName.trim()) footer += `我是 ${myUserName.trim()}\n`;
+                    footer += `日期：${todayDate}`;
+                    report += footer;
+
+                    copyToClipboard(report, "🏫 導師知會信已複製");
+                } 
+                else if (type === 'parent') {
+                    const seat = parseInt(parentSeat);
+                    const student = parentName.trim() ? `${parentName} 同學` : `${seat}號 同學`;
+                    const days = overdueDays.trim() || "數";
+                    
+                    const activeTasks = tasks.slice(0, taskCount);
+                    const issueTasks = [];
+                    activeTasks.forEach((t, i) => {
+                        const taskName = t.title.trim() || `作業 ${i + 1}`;
+                        const state = t.states[seat];
+                        if (state === 0 || state === 1) {
+                            issueTasks.push(`- ${taskName} (目前狀態: ${legend[state]})`);
+                        }
+                    });
+
+                    if (issueTasks.length === 0) {
+                        alert(`✅ ${student} 在目前的清單中沒有缺交作業喔！`);
+                        return;
+                    }
+
+                    let report = `親愛的家長您好：\n\n`;
+                    report += `提醒您，貴子弟 ${student} 目前有以下作業尚未完成：\n\n`;
+                    report += issueTasks.join('\n') + `\n\n`;
+                    report += `以上作業已逾期 ${days} 天。\n`;
+                    report += `已經有多次提醒孩子，懇請家長協助關心與督促孩子盡快完成補件，感謝您的配合與支持！`;
+
+                    let footer = `\n\n`;
+                    if (myUserName.trim()) footer += `任課教師 ${myUserName.trim()} \n`;
+                    footer += `日期：${todayDate}`;
+                    report += footer;
+
+                    copyToClipboard(report, "🚨 家長警告信已複製");
+                }
+            };
+
+            return (
+                <>
+                    <h2>📋 上石國小作業點交系統</h2>
+
+                    <div className="top-controls">
+                        {[1, 2, 3, 4].map(num => (
+                            <button 
+                                key={num}
+                                className={`mode-btn ${taskCount === num ? 'active' : ''}`}
+                                onClick={() => setTaskCount(num)}
+                            >
+                                {num} 項作業
+                            </button>
+                        ))}
+                    </div>
+
+                    <div className="legend-section">
+                        <div className="legend-row">
+                            <div className="legend-dot" style={{backgroundColor: 'var(--color-missing)'}}></div>
+                            <input type="text" className="legend-input" value={legend[0]} onChange={(e) => setLegend({...legend, 0: e.target.value})} />
+                        </div>
+                        <div className="legend-row">
+                            <div className="legend-dot" style={{backgroundColor: 'var(--color-processing)'}}></div>
+                            <input type="text" className="legend-input" value={legend[1]} onChange={(e) => setLegend({...legend, 1: e.target.value})} />
+                        </div>
+                        <div className="legend-row">
+                            <div className="legend-dot" style={{backgroundColor: 'var(--color-completed)'}}></div>
+                            <input type="text" className="legend-input" value={legend[2]} onChange={(e) => setLegend({...legend, 2: e.target.value})} />
+                        </div>
+                    </div>
+
+                    <div className="tasks-container">
+                        {tasks.slice(0, taskCount).map((task, index) => (
+                            <div key={task.id} className="task-card">
+                                <input
+                                    type="text"
+                                    className="paper-input"
+                                    value={task.title}
+                                    onChange={(e) => handleTitleChange(task.id, e.target.value)}
+                                    placeholder={`輸入作業 ${index + 1} 標題...`}
+                                />
+                                
+                                {/* 新增：批次操作按鈕 */}
+                                <div className="task-actions">
+                                    <button className="action-btn set-all-btn" onClick={() => handleSetAllStates(task.id, 2)}>
+                                        ✅ 全班已交
+                                    </button>
+                                    <button className="action-btn reset-btn" onClick={() => handleSetAllStates(task.id, 0)}>
+                                        🔄 重設未交
+                                    </button>
+                                </div>
+
+                                <div className="button-grid">
+                                    {BUTTON_NUMBERS.map(num => (
+                                        <button
+                                            key={num}
+                                            className={`status-button ${STATUS_CLASSES[task.states[num]]}`}
+                                            onClick={() => handleStatusClick(task.id, num)}
+                                            title={`目前狀態: ${legend[task.states[num]]}`}
+                                        >
+                                            {num}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="export-section-container">
+                        
+                        <div className="user-identity">
+                            <strong style={{whiteSpace: 'nowrap', color: 'var(--text-main)'}}>我的稱呼：</strong>
+                            <input 
+                                type="text" 
+                                className="export-input" 
+                                style={{maxWidth: '300px'}}
+                                value={myUserName} 
+                                onChange={(e) => setMyUserName(e.target.value)} 
+                                placeholder="例如：自然科 林老師 (將附於文案末尾)" 
+                            />
+                        </div>
+
+                        <div className="export-section">
+                            <div className="export-card card-general">
+                                <div className="export-label" style={{color: '#2e7d32'}}>🌱 班級通知 (供小老師)</div>
+                                <div style={{fontSize: '13px', color: '#666', marginBottom: '10px', flex: 1}}>
+                                    安全操作。產生整體繳交情況供登記用。
+                                </div>
+                                <button className="export-btn btn-general" onClick={exportForHelper}>
+                                    生成整體狀況給小老師
+                                </button>
+                            </div>
+
+                            <div className="export-card card-hr">
+                                <div className="export-label" style={{color: '#e65100'}}>⚠️ 告知班導</div>
+                                <input
+                                    type="text"
+                                    className="export-input"
+                                    value={hrTeacher}
+                                    onChange={(e) => setHrTeacher(e.target.value)}
+                                    placeholder="輸入導師稱呼 (例：五甲導師)"
+                                />
+                                <div style={{fontSize: '13px', color: '#666', marginBottom: '5px', flex: 1}}>
+                                    產生知會信給導師。按下後會要求二次確認。
+                                </div>
+                                <button className="export-btn btn-hr" onClick={() => requestExport('hr')}>
+                                    生成導師知會信
+                                </button>
+                            </div>
+
+                            <div className="export-card card-parent">
+                                <div className="export-label" style={{color: '#c62828'}}>🚨 個別警告 (致家長)</div>
+                                <div className="flex-row">
+                                    <select className="export-input" style={{width: '70px'}} value={parentSeat} onChange={(e) => setParentSeat(e.target.value)}>
+                                        {BUTTON_NUMBERS.map(n => <option key={n} value={n}>{n}號</option>)}
+                                    </select>
+                                    <input type="text" className="export-input" value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="學生姓名 (選填)"/>
+                                </div>
+                                <input
+                                    type="number"
+                                    className="export-input"
+                                    value={overdueDays}
+                                    onChange={(e) => setOverdueDays(e.target.value)}
+                                    placeholder="已逾期天數 (例：3)"
+                                />
+                                <div style={{fontSize: '13px', color: '#666', marginBottom: '5px', flex: 1}}>
+                                    最後手段！發送給家長。按下後會要求嚴格確認。
+                                </div>
+                                <button className="export-btn btn-parent" onClick={() => requestExport('parent')}>
+                                    生成家長嚴重警告信
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 二次確認彈窗 */}
+                    {confirmDialog.isOpen && (
+                        <div className="modal-overlay">
+                            <div className="modal-box" style={{border: confirmDialog.type === 'parent' ? '3px solid #c62828' : '3px solid #f57c00'}}>
+                                <h3 style={{marginTop: 0, color: confirmDialog.type === 'parent' ? '#c62828' : '#f57c00', fontSize: '20px'}}>
+                                    {confirmDialog.title}
+                                </h3>
+                                <div style={{fontSize: '16px', lineHeight: '1.6', color: '#333', whiteSpace: 'pre-wrap'}}>
+                                    {confirmDialog.message}
+                                </div>
+                                <div className="confirm-actions">
+                                    <button className="btn-cancel" onClick={() => setConfirmDialog({...confirmDialog, isOpen: false})}>
+                                        取消返回
+                                    </button>
+                                    <button 
+                                        className={confirmDialog.type === 'parent' ? 'btn-confirm-parent' : 'btn-confirm-hr'} 
+                                        onClick={executeExport}
+                                    >
+                                        我確定，繼續產生
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 成功複製結果彈窗 */}
+                    {modal.isOpen && (
+                        <div className="modal-overlay" onClick={() => setModal({ ...modal, isOpen: false })}>
+                            <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+                                <h3 style={{marginTop: 0, color: 'var(--text-main)', borderBottom: '2px solid #dfcba4', paddingBottom: '10px'}}>
+                                    {modal.title}
+                                </h3>
+                                <div className="modal-preview">
+                                    {modal.text}
+                                </div>
+                                <p style={{fontSize: '15px', lineHeight: '1.6', color: '#444', backgroundColor: '#fcf8f2', padding: '10px', borderRadius: '6px', border: '1px solid #dfcba4'}}>
+                                    （文字已經按下 <span style={{color: '#d32f2f', fontWeight: 'bold', fontSize: '16px'}}>複製[ctrl+c]</span> 了，可以直接在 Line 或其他地方按下 <span style={{color: '#2e7d32', fontWeight: 'bold', fontSize: '16px'}}>貼上[ctrl+v]</span> 喔。）
+                                </p>
+                                <button 
+                                    className="export-btn" 
+                                    style={{marginTop: '15px', backgroundColor: '#6a8caf', boxShadow: '0 3px 0 #537191'}} 
+                                    onClick={() => setModal({ ...modal, isOpen: false })}
+                                >
+                                    我知道了，關閉視窗
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                </>
+            );
+        };
+
+        const container = document.getElementById('root');
+        const root = createRoot(container);
+        root.render(<App />);
+    </script>
+</body>
+</html>
