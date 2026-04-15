@@ -68,7 +68,7 @@
             display: flex;
             justify-content: center;
             gap: 10px;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             flex-wrap: wrap;
         }
         .mode-btn {
@@ -93,7 +93,7 @@
             justify-content: center;
             flex-wrap: wrap;
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 25px;
             padding: 15px;
             background: rgba(255, 255, 255, 0.5);
             border-radius: 6px;
@@ -191,11 +191,11 @@
 
         .user-identity {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 10px;
             margin-bottom: 20px;
             background: rgba(255,255,255,0.5);
-            padding: 10px 15px;
+            padding: 15px;
             border-radius: 6px;
             border: 1px solid var(--line-color);
         }
@@ -219,6 +219,7 @@
         }
 
         /* 裝飾線條區分嚴重程度 */
+        .card-summary { border-top: 4px solid #1976d2; }
         .card-general { border-top: 4px solid #81c784; }
         .card-hr { border-top: 4px solid #f57c00; }
         .card-parent { border-top: 4px solid #c62828; }
@@ -231,18 +232,31 @@
         }
         .export-input:focus { outline: none; border-color: #8b5a2b; }
         
-        .flex-row { display: flex; gap: 10px; }
+        .flex-row { display: flex; gap: 10px; align-items: center; width: 100%; }
+        .input-label { white-space: nowrap; color: var(--text-main); font-weight: bold; width: 85px; }
 
         .export-btn {
             color: white; border: none; padding: 12px 10px; font-size: 15px; border-radius: 6px;
-            cursor: pointer; font-weight: bold; width: 100%; margin-top: auto; box-shadow: 0 4px 0 rgba(0,0,0,0.2);
+            cursor: pointer; font-weight: bold; width: 100%; box-shadow: 0 4px 0 rgba(0,0,0,0.2);
             transition: all 0.15s ease;
         }
         .export-btn:active { transform: translateY(4px); box-shadow: 0 0px 0 rgba(0,0,0,0.2); }
         
+        .btn-summary { background-color: #42a5f5; box-shadow: 0 4px 0 #1565c0; }
+        .btn-summary:hover { background-color: #2196f3; }
+        .btn-summary:active { box-shadow: 0 0px 0 #1565c0; }
+
+        .btn-download { background-color: #5c6bc0; box-shadow: 0 4px 0 #283593; }
+        .btn-download:hover { background-color: #3f51b5; }
+        .btn-download:active { box-shadow: 0 0px 0 #283593; }
+
+        .btn-email { background-color: #ea4335; box-shadow: 0 4px 0 #c5221f; }
+        .btn-email:hover { background-color: #f28b82; }
+        .btn-email:active { box-shadow: 0 0px 0 #c5221f; }
+
         .btn-general { 
             background-color: #81c784; color: #1b5e20; box-shadow: 0 4px 0 #4caf50; 
-            text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+            text-shadow: 0 1px 0 rgba(255,255,255,0.4); margin-top: auto;
         } 
         .btn-general:hover { background-color: #66bb6a; }
         .btn-general:active { box-shadow: 0 0px 0 #4caf50; }
@@ -286,11 +300,39 @@
             opacity: 0.25; letter-spacing: 1px; pointer-events: none; user-select: none; z-index: 9999;
         }
 
+        /* 歡迎視窗的相關樣式 */
+        .welcome-list {
+            margin: 10px 0 0 0; padding-left: 20px; color: #555; line-height: 1.5;
+        }
+        .welcome-list li { margin-bottom: 5px; }
+
+        /* 呼吸燈文字動畫 */
+        @keyframes breathe {
+            0%   { opacity: 0.8; transform: scale(0.98); text-shadow: 0 0 5px rgba(139, 90, 43, 0.1); }
+            50%  { opacity: 1;   transform: scale(1.02); text-shadow: 0 0 15px rgba(139, 90, 43, 0.5); }
+            100% { opacity: 0.8; transform: scale(0.98); text-shadow: 0 0 5px rgba(139, 90, 43, 0.1); }
+        }
+        .breathing-text {
+            animation: breathe 3.5s ease-in-out infinite;
+            font-size: 20px;
+            font-weight: bold;
+            color: #8b5a2b; /* 溫暖的棕褐色 */
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.3) 100%);
+            border-radius: 8px;
+            border: 1px dashed #d1bfae;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            letter-spacing: 1px;
+        }
+
         @media (max-width: 600px) {
             #root { padding: 20px 15px; }
             .legend-section { flex-direction: column; align-items: flex-start; }
             .export-section { grid-template-columns: 1fr; }
             .confirm-actions { flex-direction: column; }
+            .input-label { width: 75px; font-size: 14px; }
         }
     </style>
 </head>
@@ -303,19 +345,43 @@
     </div>
 
     <script type="text/babel">
-        const { useState } = React;
+        // =========================================================================
+        // 💡 激勵小語修改區
+        // =========================================================================
+        // 在這裡可以新增、修改、或是刪除裡面的句子。
+        // 請確保每一句話都被雙引號 " " 包起來，並且用逗號 , 隔開。
+        const MOTIVATIONAL_QUOTES = [
+            "記得謝謝留在教育界的自己，我們正在做對的事。",
+            "EC for me 努力成為最棒的自己。",
+            "照顧好別人之前，也要好好照顧好自己喔。",
+            "莫忘初衷很難，但願問心無愧。"
+        ];
+        // =========================================================================
+
+        const { useState, useEffect } = React;
         const { createRoot } = ReactDOM;
 
-        const BUTTON_NUMBERS = [...Array(30).keys()].map(i => i + 1);
         const STATUS_CLASSES = ['state-0', 'state-1', 'state-2'];
 
-        const generateInitialStates = () => BUTTON_NUMBERS.reduce((acc, num) => ({ ...acc, [num]: 0 }), {});
+        // 預設產生涵蓋最大人數的初始狀態，避免越界問題
+        const generateInitialStates = () => [...Array(30).keys()].map(i => i + 1).reduce((acc, num) => ({ ...acc, [num]: 0 }), {});
 
         const App = () => {
+            const [showWelcome, setShowWelcome] = useState(true); 
+            const [randomQuote, setRandomQuote] = useState("");
+
+            // 初始化時隨機選擇一句激勵小語
+            useEffect(() => {
+                const randomIndex = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+                setRandomQuote(MOTIVATIONAL_QUOTES[randomIndex]);
+            }, []);
+
             const [taskCount, setTaskCount] = useState(1);
+            const [studentCount, setStudentCount] = useState(30); 
             const [legend, setLegend] = useState({ 0: '未交', 1: '處理中', 2: '已交' });
             
             const [myUserName, setMyUserName] = useState('');
+            const [myEmail, setMyEmail] = useState('');
 
             const [tasks, setTasks] = useState([
                 { id: 1, title: '', states: generateInitialStates() },
@@ -327,17 +393,19 @@
             const [hrTeacher, setHrTeacher] = useState('');
             const [parentSeat, setParentSeat] = useState(1);
             const [parentName, setParentName] = useState('');
+            const [parentTask, setParentTask] = useState(''); 
             const [overdueDays, setOverdueDays] = useState('');
 
             const [modal, setModal] = useState({ isOpen: false, title: '', text: '' });
-            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', title: '', message: '' });
+            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', action: '', title: '', message: '' });
 
-            // 更改作業標題
+            // 根據設定產生目前的號碼陣列
+            const currentButtonNumbers = [...Array(studentCount).keys()].map(i => i + 1);
+
             const handleTitleChange = (id, newTitle) => {
                 setTasks(tasks.map(t => t.id === id ? { ...t, title: newTitle } : t));
             };
 
-            // 點擊單一號碼切換狀態
             const handleStatusClick = (taskId, number) => {
                 setTasks(tasks.map(t => {
                     if (t.id === taskId) {
@@ -347,12 +415,12 @@
                 }));
             };
 
-            // 批次設定特定作業的所有號碼狀態 (0: 未交, 2: 已交)
             const handleSetAllStates = (taskId, newState) => {
                 setTasks(tasks.map(t => {
                     if (t.id === taskId) {
-                        const newStates = {};
-                        BUTTON_NUMBERS.forEach(num => {
+                        const newStates = { ...t.states };
+                        // 只重設目前人數的狀態
+                        currentButtonNumbers.forEach(num => {
                             newStates[num] = newState;
                         });
                         return { ...t, states: newStates };
@@ -373,15 +441,68 @@
                 return new Date().toLocaleDateString('zh-TW');
             };
 
-            // --- 匯出功能一：班級通知 ---
+            // 【共用】開啟 Gmail 功能
+            const openGmailWithContent = (subjectPrefix, bodyContent) => {
+                if (!myEmail.trim()) {
+                    alert("⚠️ 系統提示：\n請先在上方填寫「我的信箱」，才能開啟 Gmail 幫您自動填寫喔！");
+                    return;
+                }
+                const to = encodeURIComponent(myEmail.trim());
+                const subject = encodeURIComponent(`${subjectPrefix} ${getTodayDateString()} 紀錄`);
+                const body = encodeURIComponent(bodyContent);
+                
+                const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subject}&body=${body}`;
+                window.open(gmailLink, '_blank');
+            };
+
+            // 產生總表 (純文字版)
+            const generateOverallReport = () => {
+                let report = `【本次作業點交總表】\n日期：${getTodayDateString()}\n`;
+                if (myUserName.trim()) report += `登記人：${myUserName.trim()}\n`;
+                report += `\n`;
+                
+                const activeTasks = tasks.slice(0, taskCount);
+                activeTasks.forEach((t, i) => {
+                    const taskName = t.title.trim() || `作業 ${i + 1}`;
+                    const missing = currentButtonNumbers.filter(num => t.states[num] === 0);
+                    const processing = currentButtonNumbers.filter(num => t.states[num] === 1);
+                    const completed = currentButtonNumbers.filter(num => t.states[num] === 2);
+                    
+                    report += `=====================\n`;
+                    report += `作業名稱：${taskName}\n`;
+                    report += `[${legend[2]}] (${completed.length}人)\n`;
+                    report += `[${legend[1]}] (${processing.length}人)：${processing.length > 0 ? processing.join(', ') : '無'}\n`;
+                    report += `[${legend[0]}] (${missing.length}人)：${missing.length > 0 ? missing.join(', ') : '無'}\n`;
+                    report += `\n`;
+                });
+                return report;
+            };
+
+            const copyOverallReport = () => copyToClipboard(generateOverallReport(), "📊 本次作業總表已複製");
+            const openGmailSummary = () => openGmailWithContent("【作業點交總表】", generateOverallReport());
+
+            const downloadTxtFile = () => {
+                const report = generateOverallReport();
+                const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                const safeDate = getTodayDateString().replace(/\//g, '');
+                link.download = `作業點交總表_${safeDate}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            };
+
             const exportForHelper = () => {
                 let report = `【作業繳交狀況紀錄】\n\n`;
                 const activeTasks = tasks.slice(0, taskCount);
                 
                 activeTasks.forEach((t, i) => {
                     const taskName = t.title.trim() || `作業 ${i + 1}`;
-                    const missing = BUTTON_NUMBERS.filter(num => t.states[num] === 0);
-                    const processing = BUTTON_NUMBERS.filter(num => t.states[num] === 1);
+                    const missing = currentButtonNumbers.filter(num => t.states[num] === 0);
+                    const processing = currentButtonNumbers.filter(num => t.states[num] === 1);
                     
                     report += `📌 ${taskName}\n`;
                     if (missing.length > 0) report += `🔴 [${legend[0]}]：${missing.join(', ')}\n`;
@@ -396,99 +517,147 @@
                 copyToClipboard(report, "✅ 小老師紀錄已複製");
             };
 
-            // --- 開啟二次確認視窗 ---
-            const requestExport = (type) => {
+            // 產生導師信內容
+            const generateHrReport = () => {
+                const teacher = hrTeacher.trim() || "導師";
+                let report = `${teacher} 您好：\n\n向您回報近期的作業繳交狀況，僅供您知悉班上情形，我會自行處理與提醒學生。\n\n`;
+                
+                const activeTasks = tasks.slice(0, taskCount);
+                let hasIssues = false;
+
+                activeTasks.forEach((t, i) => {
+                    const taskName = t.title.trim() || `作業 ${i + 1}`;
+                    const missing = currentButtonNumbers.filter(num => t.states[num] === 0);
+                    const processing = currentButtonNumbers.filter(num => t.states[num] === 1);
+                    
+                    if (missing.length > 0 || processing.length > 0) {
+                        hasIssues = true;
+                        report += `📌 ${taskName}\n`;
+                        if (missing.length > 0) report += `🔴 [${legend[0]}]：${missing.join(', ')}\n`;
+                        if (processing.length > 0) report += `🟡 [${legend[1]}]：${processing.join(', ')}\n\n`;
+                    }
+                });
+
+                if (!hasIssues) report += `✅ 目前各項作業全班皆已繳交完畢！\n\n`;
+                report += `後續我會持續追蹤缺交情況，若真的還有特別嚴重的狀況，我會再私下與您討論。辛苦了，謝謝！`;
+                
+                let footer = `\n\n`;
+                if (myUserName.trim()) footer += `我是 ${myUserName.trim()}\n`;
+                footer += `日期：${getTodayDateString()}`;
+                return report + footer;
+            };
+
+            // 產生家長信內容
+            const generateParentReport = () => {
+                const seat = parseInt(parentSeat);
+                const student = parentName.trim() ? `${parentName} 同學` : `${seat}號 同學`;
+                const days = overdueDays.trim() || "數";
+                const taskContent = parentTask.trim();
+
+                let report = `親愛的家長您好：\n\n`;
+                report += `提醒您，貴子弟 ${student} 目前有以下作業尚未完成：\n\n`;
+                report += `${taskContent}\n\n`;
+                report += `以上作業已逾期 ${days} 天。\n`;
+                report += `已經有多次提醒孩子，懇請家長協助關心與督促孩子盡快完成補件，感謝您的配合與支持！`;
+
+                let footer = `\n\n`;
+                if (myUserName.trim()) footer += `任課教師 ${myUserName.trim()} \n`;
+                footer += `日期：${getTodayDateString()}`;
+                return report + footer;
+            };
+
+            // 呼叫二次確認彈窗
+            const requestExport = (type, action) => {
+                if (type === 'parent' && !parentTask.trim()) {
+                    alert("⚠️ 請先在欄位中輸入學生缺交的「作業內容」喔！");
+                    return;
+                }
+                if (action === 'gmail' && !myEmail.trim()) {
+                    alert("⚠️ 系統提示：\n請先在上方填寫「我的信箱」，才能開啟 Gmail 寄信喔！");
+                    return;
+                }
+
                 if (type === 'hr') {
                     setConfirmDialog({
-                        isOpen: true,
-                        type: 'hr',
+                        isOpen: true, type: 'hr', action: action,
                         title: '⚠️ 準備知會導師',
                         message: '雖然文案表明「自行處理」，但發送訊息仍會稍微打擾導師。\n\n請確認目前的缺交狀況是否已經需要讓導師知悉？'
                     });
                 } else if (type === 'parent') {
                     setConfirmDialog({
-                        isOpen: true,
-                        type: 'parent',
+                        isOpen: true, type: 'parent', action: action,
                         title: '🚨 嚴重警告：準備聯繫家長',
                         message: '您將發出正式給家長的警示！\n\n請問您是否已經嘗試過「親自提醒」或「要求補繳」，但學生依然無動於衷？\n建議除非必要，請避免輕易直接聯繫家長。\n\n您確定要產生正式的家長警告信嗎？'
                     });
                 }
             };
 
-            // --- 確認後執行匯出 ---
+            // 確認後執行匯出
             const executeExport = () => {
-                const type = confirmDialog.type;
-                const todayDate = getTodayDateString();
+                const { type, action } = confirmDialog;
                 setConfirmDialog({ ...confirmDialog, isOpen: false }); 
 
+                let reportContent = "";
+                let subjectPrefix = "";
+                let successMessage = "";
+
                 if (type === 'hr') {
-                    const teacher = hrTeacher.trim() || "導師";
-                    let report = `${teacher} 您好：\n\n向您回報近期的作業繳交狀況，僅供您知悉班上情形，我會自行處理與提醒學生。\n\n`;
-                    
-                    const activeTasks = tasks.slice(0, taskCount);
-                    let hasIssues = false;
+                    reportContent = generateHrReport();
+                    subjectPrefix = "【導師知會信】";
+                    successMessage = "🏫 導師知會信已複製";
+                } else if (type === 'parent') {
+                    reportContent = generateParentReport();
+                    subjectPrefix = `【家長通知信】${parentSeat}號`;
+                    successMessage = "🚨 家長警告信已複製";
+                }
 
-                    activeTasks.forEach((t, i) => {
-                        const taskName = t.title.trim() || `作業 ${i + 1}`;
-                        const missing = BUTTON_NUMBERS.filter(num => t.states[num] === 0);
-                        const processing = BUTTON_NUMBERS.filter(num => t.states[num] === 1);
-                        
-                        if (missing.length > 0 || processing.length > 0) {
-                            hasIssues = true;
-                            report += `📌 ${taskName}\n`;
-                            if (missing.length > 0) report += `🔴 [${legend[0]}]：${missing.join(', ')}\n`;
-                            if (processing.length > 0) report += `🟡 [${legend[1]}]：${processing.join(', ')}\n\n`;
-                        }
-                    });
-
-                    if (!hasIssues) report += `✅ 目前各項作業全班皆已繳交完畢！\n\n`;
-
-                    report += `後續我會持續追蹤缺交情況，若真的還有特別嚴重的狀況，我會再私下與您討論。辛苦了，謝謝！`;
-                    
-                    let footer = `\n\n`;
-                    if (myUserName.trim()) footer += `我是 ${myUserName.trim()}\n`;
-                    footer += `日期：${todayDate}`;
-                    report += footer;
-
-                    copyToClipboard(report, "🏫 導師知會信已複製");
-                } 
-                else if (type === 'parent') {
-                    const seat = parseInt(parentSeat);
-                    const student = parentName.trim() ? `${parentName} 同學` : `${seat}號 同學`;
-                    const days = overdueDays.trim() || "數";
-                    
-                    const activeTasks = tasks.slice(0, taskCount);
-                    const issueTasks = [];
-                    activeTasks.forEach((t, i) => {
-                        const taskName = t.title.trim() || `作業 ${i + 1}`;
-                        const state = t.states[seat];
-                        if (state === 0 || state === 1) {
-                            issueTasks.push(`- ${taskName} (目前狀態: ${legend[state]})`);
-                        }
-                    });
-
-                    if (issueTasks.length === 0) {
-                        alert(`✅ ${student} 在目前的清單中沒有缺交作業喔！`);
-                        return;
-                    }
-
-                    let report = `親愛的家長您好：\n\n`;
-                    report += `提醒您，貴子弟 ${student} 目前有以下作業尚未完成：\n\n`;
-                    report += issueTasks.join('\n') + `\n\n`;
-                    report += `以上作業已逾期 ${days} 天。\n`;
-                    report += `已經有多次提醒孩子，懇請家長協助關心與督促孩子盡快完成補件，感謝您的配合與支持！`;
-
-                    let footer = `\n\n`;
-                    if (myUserName.trim()) footer += `任課教師 ${myUserName.trim()} \n`;
-                    footer += `日期：${todayDate}`;
-                    report += footer;
-
-                    copyToClipboard(report, "🚨 家長警告信已複製");
+                if (action === 'gmail') {
+                    openGmailWithContent(subjectPrefix, reportContent);
+                } else {
+                    copyToClipboard(reportContent, successMessage);
                 }
             };
 
             return (
                 <>
+                    {showWelcome && (
+                        <div className="modal-overlay">
+                            <div className="modal-box" style={{border: '3px solid #8b5a2b', maxWidth: '550px'}}>
+                                <h2 style={{marginTop: 0, color: 'var(--text-main)', borderBottom: '2px dashed var(--line-color)', paddingBottom: '15px'}}>
+                                    👋 歡迎使用上石國小作業點交系統
+                                </h2>
+                                
+                                {/* 這裡顯示會呼吸的隨機激勵小語 */}
+                                <div className="breathing-text">
+                                    {randomQuote}
+                                </div>
+
+                                <div style={{fontSize: '15px', lineHeight: '1.6', color: '#4a3b32', marginBottom: '25px'}}>
+                                    <p style={{fontWeight: 'bold', textAlign: 'center'}}>若有疑問請洽嘉威老師</p>
+                                    <div style={{background: '#f8f1e5', padding: '15px', borderRadius: '8px', border: '1px solid #d1bfae'}}>
+                                        <strong>📝 更新紀錄：</strong>
+                                        
+                                        {/* ======================================================= */}
+                                        {/* 💡 更新紀錄修改區 */}
+                                        {/* ======================================================= */}
+                                        {/* 複製一個 <li>...</li> 貼到底下即可新增一行紀錄 */}
+                                        <ul className="welcome-list">
+                                            <li>2026.04.14 正式上架</li>
+                                            <li>2026.04.15 更新匯出本次作業點交結果功能(感謝格逢主任建議)</li>
+                                            <li>2026.04.15 新增將結果、導師通知信、家長通知訊息寄送給自己的信箱(綁定gmail)功能</li>
+                                            <li>2026.04.15 新增本更新紀錄視窗</li>
+                                        </ul>
+                                        {/* ======================================================= */}
+                                        
+                                    </div>
+                                </div>
+                                <button className="export-btn btn-general" onClick={() => setShowWelcome(false)} style={{fontSize: '18px', padding: '15px'}}>
+                                    開始使用
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     <h2>📋 上石國小作業點交系統</h2>
 
                     <div className="top-controls">
@@ -518,6 +687,19 @@
                         </div>
                     </div>
 
+                    <div style={{textAlign: 'center', marginBottom: '15px', fontWeight: 'bold', color: 'var(--text-main)'}}>
+                        班級總人數設定：
+                        <select 
+                            value={studentCount} 
+                            onChange={e => setStudentCount(Number(e.target.value))}
+                            style={{padding: '5px 10px', fontSize: '15px', borderRadius: '4px', border: '1px solid var(--line-color)', marginLeft: '10px', fontFamily: 'inherit', cursor: 'pointer'}}
+                        >
+                            {[...Array(26).keys()].map(i => i + 5).map(n => (
+                                <option key={n} value={n}>{n} 人</option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div className="tasks-container">
                         {tasks.slice(0, taskCount).map((task, index) => (
                             <div key={task.id} className="task-card">
@@ -529,7 +711,6 @@
                                     placeholder={`輸入作業 ${index + 1} 標題...`}
                                 />
                                 
-                                {/* 新增：批次操作按鈕 */}
                                 <div className="task-actions">
                                     <button className="action-btn set-all-btn" onClick={() => handleSetAllStates(task.id, 2)}>
                                         ✅ 全班已交
@@ -540,7 +721,7 @@
                                 </div>
 
                                 <div className="button-grid">
-                                    {BUTTON_NUMBERS.map(num => (
+                                    {currentButtonNumbers.map(num => (
                                         <button
                                             key={num}
                                             className={`status-button ${STATUS_CLASSES[task.states[num]]}`}
@@ -558,25 +739,56 @@
                     <div className="export-section-container">
                         
                         <div className="user-identity">
-                            <strong style={{whiteSpace: 'nowrap', color: 'var(--text-main)'}}>我的稱呼：</strong>
-                            <input 
-                                type="text" 
-                                className="export-input" 
-                                style={{maxWidth: '300px'}}
-                                value={myUserName} 
-                                onChange={(e) => setMyUserName(e.target.value)} 
-                                placeholder="例如：自然科 林老師 (將附於文案末尾)" 
-                            />
+                            <div className="flex-row">
+                                <span className="input-label">我的稱呼：</span>
+                                <input 
+                                    type="text" 
+                                    className="export-input" 
+                                    style={{maxWidth: '350px'}}
+                                    value={myUserName} 
+                                    onChange={(e) => setMyUserName(e.target.value)} 
+                                    placeholder="例如：自然科 林老師" 
+                                />
+                            </div>
+                            <div className="flex-row">
+                                <span className="input-label">我的信箱：</span>
+                                <input 
+                                    type="email" 
+                                    className="export-input" 
+                                    style={{maxWidth: '350px'}}
+                                    value={myEmail} 
+                                    onChange={(e) => setMyEmail(e.target.value)} 
+                                    placeholder="填寫您的收件信箱 (點擊 Gmail 寄信時會用上)" 
+                                />
+                            </div>
                         </div>
 
                         <div className="export-section">
+                            <div className="export-card card-summary">
+                                <div className="export-label" style={{color: '#1976d2'}}>📊 本次作業點交總表</div>
+                                <div style={{fontSize: '13px', color: '#666', marginBottom: '10px', flex: 1}}>
+                                    匯出本次所有作業與各號碼的缺交名單情形。
+                                </div>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto'}}>
+                                    <button className="export-btn btn-summary" onClick={copyOverallReport}>
+                                        📋 複製純文字 (需自行貼上)
+                                    </button>
+                                    <button className="export-btn btn-download" onClick={downloadTxtFile}>
+                                        💾 存成記事本檔案 (txt)
+                                    </button>
+                                    <button className="export-btn btn-email" onClick={openGmailSummary}>
+                                        📧 開啟 Gmail 寄給自己
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="export-card card-general">
                                 <div className="export-label" style={{color: '#2e7d32'}}>🌱 班級通知 (供小老師)</div>
                                 <div style={{fontSize: '13px', color: '#666', marginBottom: '10px', flex: 1}}>
-                                    安全操作。產生整體繳交情況供登記用。
+                                    安全操作。產生精簡版繳交情況供登記用。
                                 </div>
                                 <button className="export-btn btn-general" onClick={exportForHelper}>
-                                    生成整體狀況給小老師
+                                    生成精簡版給小老師
                                 </button>
                             </div>
 
@@ -592,19 +804,32 @@
                                 <div style={{fontSize: '13px', color: '#666', marginBottom: '5px', flex: 1}}>
                                     產生知會信給導師。按下後會要求二次確認。
                                 </div>
-                                <button className="export-btn btn-hr" onClick={() => requestExport('hr')}>
-                                    生成導師知會信
-                                </button>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto'}}>
+                                    <button className="export-btn btn-hr" onClick={() => requestExport('hr', 'copy')}>
+                                        📋 複製導師知會信
+                                    </button>
+                                    <button className="export-btn btn-email" onClick={() => requestExport('hr', 'gmail')}>
+                                        📧 開啟 Gmail 寄送
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="export-card card-parent">
                                 <div className="export-label" style={{color: '#c62828'}}>🚨 個別警告 (致家長)</div>
                                 <div className="flex-row">
                                     <select className="export-input" style={{width: '70px'}} value={parentSeat} onChange={(e) => setParentSeat(e.target.value)}>
-                                        {BUTTON_NUMBERS.map(n => <option key={n} value={n}>{n}號</option>)}
+                                        {/* 動態抓取目前班級人數生成號碼 */}
+                                        {currentButtonNumbers.map(n => <option key={n} value={n}>{n}號</option>)}
                                     </select>
                                     <input type="text" className="export-input" value={parentName} onChange={(e) => setParentName(e.target.value)} placeholder="學生姓名 (選填)"/>
                                 </div>
+                                <textarea
+                                    className="export-input"
+                                    style={{resize: 'vertical', minHeight: '55px', fontFamily: 'inherit'}}
+                                    value={parentTask}
+                                    onChange={(e) => setParentTask(e.target.value)}
+                                    placeholder="輸入缺交的作業名稱 (例如：數學習作，可換行)"
+                                ></textarea>
                                 <input
                                     type="number"
                                     className="export-input"
@@ -615,9 +840,14 @@
                                 <div style={{fontSize: '13px', color: '#666', marginBottom: '5px', flex: 1}}>
                                     最後手段！發送給家長。按下後會要求嚴格確認。
                                 </div>
-                                <button className="export-btn btn-parent" onClick={() => requestExport('parent')}>
-                                    生成家長嚴重警告信
-                                </button>
+                                <div style={{display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto'}}>
+                                    <button className="export-btn btn-parent" onClick={() => requestExport('parent', 'copy')}>
+                                        📋 複製家長警告信
+                                    </button>
+                                    <button className="export-btn btn-email" onClick={() => requestExport('parent', 'gmail')}>
+                                        📧 開啟 Gmail 寄送
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -640,7 +870,7 @@
                                         className={confirmDialog.type === 'parent' ? 'btn-confirm-parent' : 'btn-confirm-hr'} 
                                         onClick={executeExport}
                                     >
-                                        我確定，繼續產生
+                                        {confirmDialog.action === 'gmail' ? '我確定，開啟 Gmail' : '我確定，繼續產生'}
                                     </button>
                                 </div>
                             </div>
